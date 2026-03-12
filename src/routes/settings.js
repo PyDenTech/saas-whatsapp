@@ -86,18 +86,18 @@ router.post('/settings', requireAuth, requireRole('admin'), async (req, res, nex
 
     await pool.query(
       `update tenants
-       set welcome_message = $2,
-           meta_phone_number_id = $3,
-           meta_access_token = case
-             when $4 is not null then $4
-             else meta_access_token
-           end,
-           meta_business_account_id = $5,
-           meta_verify_token = $6,
-           retention_days = $7,
-           privacy_contact_email = $8,
-           updated_at = now()
-       where id = $1`,
+        set welcome_message = $2,
+            meta_phone_number_id = $3,
+            meta_access_token = case
+              when $4::text is not null then $4::text
+              else meta_access_token
+            end,
+            meta_business_account_id = $5,
+            meta_verify_token = $6,
+            retention_days = $7,
+            privacy_contact_email = $8,
+            updated_at = now()
+        where id = $1`,
       [
         currentUser.tenant_id,
         welcomeMessage,
