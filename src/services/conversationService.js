@@ -58,8 +58,13 @@ export async function addMessage({ tenantId, conversationId, senderType, body, u
       `update conversations
        set last_message = $3,
            updated_at = now(),
-           status = case when status = 'closed' then 'assigned' else status end,
-           first_response_at = case when $4 = 'agent' and first_response_at is null then now() else first_response_at end
+           status = case
+             when $4 in ('agent','bot') and status = 'closed' then 'assigned'
+             when $4 in ('agent','bot') and status = 'bot_active' then 'bot_active'
+             when $4 = 'contact' and status = 'closed' then 'bot_active'
+             else status
+           end,
+           first_response_at = case when $4 in ('agent','bot') and first_response_at is null then now() else first_response_at end
        where id = $1 and tenant_id = $2`,
       [conversationId, tenantId, body, senderType]
     );
@@ -119,19 +124,31 @@ export async function closeConversation({ tenantId, conversationId, userId, reqM
 
 export async function upsertInboundConversation({ tenantId, contactPhone, contactName = null, body, reqMeta = {} }) {
   const existing = await pool.query(
-    `select id from conversations where tenant_id = $1 and contact_phone = $2 and status <> 'closed' order by updated_at desc limit 1`,
+    `select id, protocol_code from conversations where tenant_id = $1 and contact_phone = $2 and status <> 'closed' order by updated_at desc limit 1`,
     [tenantId, contactPhone]
   );
   let conversationId = existing.rows[0]?.id;
+  let protocolCode = existing.rows[0]?.protocol_code;
   if (!conversationId) {
     const convRes = await pool.query(
       `insert into conversations (tenant_id, contact_name, contact_phone, status, waiting_since, last_message)
        values ($1,$2,$3,'bot_active', now(), $4)
-       returning id`,
+       returning id, protocol_code`,
       [tenantId, contactName, contactPhone, body]
     );
     conversationId = convRes.rows[0].id;
+    protocolCode = convRes.rows[0].protocol_code;
   }
   await addMessage({ tenantId, conversationId, senderType: 'contact', body, reqMeta });
-  return conversationId;
+  return { conversationId, protocolCode };
+}
+
+export async function setConversationMetadata({ tenantId, conversationId, patch = {} }) {
+  await pool.query(
+    `update conversations
+     set metadata = coalesce(metadata, '{}'::jsonb) || $3::jsonb,
+         updated_at = now()
+     where tenant_id = $1 and id = $2`,
+    [tenantId, conversationId, JSON.stringify(patch || {})]
+  );
 }

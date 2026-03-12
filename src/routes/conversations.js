@@ -7,6 +7,7 @@ import { pool } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { addMessage, assignConversation, closeConversation, getConversation, listInbox, moveToQueue } from '../services/conversationService.js';
 import { sendWhatsAppText } from '../services/metaWhatsAppService.js';
+import { autoAssignConversation } from '../services/botService.js';
 
 const router = express.Router();
 const uploadDir = path.resolve(env.uploadDir);
@@ -24,7 +25,11 @@ router.get('/conversations', requireAuth, async (req, res) => {
     conversations,
     selected: selected.conversation,
     messages: selected.messages,
-    agents: agentsRes.rows
+    agents: agentsRes.rows,
+    feedback: {
+      type: req.query.feedback_type || null,
+      message: req.query.feedback || null
+    }
   });
 });
 
@@ -38,29 +43,36 @@ router.post('/conversations/:id/message', requireAuth, upload.single('attachment
     const { rows } = await pool.query('select contact_phone from conversations where tenant_id = $1 and id = $2', [currentUser.tenant_id, conversationId]);
     try {
       await sendWhatsAppText({ tenantId: currentUser.tenant_id, to: rows[0].contact_phone, body });
+      return res.redirect(`/conversations?id=${conversationId}&feedback_type=success&feedback=${encodeURIComponent('Mensagem enviada para o WhatsApp com sucesso.')}`);
     } catch (error) {
       await pool.query('insert into outbound_failures (tenant_id, conversation_id, payload, error_message) values ($1,$2,$3::jsonb,$4)', [currentUser.tenant_id, conversationId, JSON.stringify({ body }), error.message]);
+      return res.redirect(`/conversations?id=${conversationId}&feedback_type=error&feedback=${encodeURIComponent('A mensagem foi salva no sistema, mas o envio ao WhatsApp falhou.')}`);
     }
   }
-  res.redirect(`/conversations?id=${conversationId}`);
+  res.redirect(`/conversations?id=${conversationId}&feedback_type=success&feedback=${encodeURIComponent('Mensagem registrada no sistema.')}`);
 });
 
 router.post('/conversations/:id/assign', requireAuth, async (req, res) => {
   const currentUser = res.locals.currentUser;
   await assignConversation({ tenantId: currentUser.tenant_id, conversationId: req.params.id, toUserId: req.body.user_id, fromUserId: currentUser.id, reqMeta: { ipAddress: req.ip, userAgent: req.headers['user-agent'] } });
-  res.redirect(`/conversations?id=${req.params.id}`);
+  res.redirect(`/conversations?id=${req.params.id}&feedback_type=success&feedback=${encodeURIComponent('Conversa transferida com sucesso.')}`);
 });
 
 router.post('/conversations/:id/queue', requireAuth, async (req, res) => {
   const currentUser = res.locals.currentUser;
   await moveToQueue({ tenantId: currentUser.tenant_id, conversationId: req.params.id, fromUserId: currentUser.id, priority: req.body.priority || 'normal', reqMeta: { ipAddress: req.ip, userAgent: req.headers['user-agent'] } });
-  res.redirect(`/conversations?id=${req.params.id}`);
+
+  if (req.body.auto_assign === '1') {
+    await autoAssignConversation({ tenantId: currentUser.tenant_id, conversationId: req.params.id, reqMeta: { ipAddress: req.ip, userAgent: req.headers['user-agent'] } });
+  }
+
+  res.redirect(`/conversations?id=${req.params.id}&feedback_type=success&feedback=${encodeURIComponent('Conversa movida para a fila.')}`);
 });
 
 router.post('/conversations/:id/close', requireAuth, async (req, res) => {
   const currentUser = res.locals.currentUser;
   await closeConversation({ tenantId: currentUser.tenant_id, conversationId: req.params.id, userId: currentUser.id, reqMeta: { ipAddress: req.ip, userAgent: req.headers['user-agent'] } });
-  res.redirect('/conversations');
+  res.redirect('/conversations?feedback_type=success&feedback=' + encodeURIComponent('Conversa encerrada.'));
 });
 
 export default router;

@@ -1,4 +1,8 @@
 <div class="space-y-6">
+  <% if (feedback?.message) { %>
+    <div class="rounded-2xl px-4 py-3 <%= feedback.type === 'error' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700' %>"><%= feedback.message %></div>
+  <% } %>
+
   <section class="bg-white rounded-3xl p-6 shadow-sm">
     <h1 class="text-2xl font-bold">Configurações enterprise</h1>
     <form action="/settings" method="post" class="mt-6 grid lg:grid-cols-2 gap-4">
@@ -11,7 +15,12 @@
       <input name="retention_days" value="<%= tenant.retention_days || 365 %>" type="number" class="rounded-2xl border px-4 py-3" placeholder="Dias de retenção" />
       <input name="max_open_conversations_per_agent" value="<%= settings?.max_open_conversations_per_agent || 25 %>" type="number" class="rounded-2xl border px-4 py-3" placeholder="Máximo de conversas por atendente" />
       <textarea name="lgpd_notice" rows="4" class="rounded-2xl border px-4 py-3 lg:col-span-2" placeholder="Aviso de privacidade"><%= settings?.lgpd_notice || '' %></textarea>
-      <label class="flex items-center gap-2"><input type="checkbox" name="auto_assign_enabled" <%= settings?.auto_assign_enabled ? 'checked' : '' %> /> Autoatribuição</label>
+      <textarea name="bot_flow_json" rows="14" class="rounded-2xl border px-4 py-3 lg:col-span-2 font-mono text-sm" placeholder='{"welcome":"...","menu":"..."}'><%= JSON.stringify(tenant.bot_flow_json || {}, null, 2) %></textarea>
+      <div class="lg:col-span-2 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+        <div class="font-semibold text-slate-800">Fluxo do bot</div>
+        <p class="mt-2">Você pode personalizar o JSON do fluxo com as chaves <code>welcome</code>, <code>menu</code>, <code>options</code>, <code>fallback</code>, <code>transferConfirmation</code> e <code>queueConfirmation</code>. O bot já funciona com o padrão do sistema, então esse campo é opcional.</p>
+      </div>
+      <label class="flex items-center gap-2"><input type="checkbox" name="auto_assign_enabled" <%= settings?.auto_assign_enabled ? 'checked' : '' %> /> Autoatribuição para o atendente com menos conversas ativas</label>
       <label class="flex items-center gap-2"><input type="checkbox" name="attachment_enabled" <%= settings?.attachment_enabled ? 'checked' : '' %> Permitir anexos</label>
       <button class="lg:col-span-2 rounded-2xl bg-slate-900 text-white py-3 font-semibold">Salvar configurações</button>
     </form>

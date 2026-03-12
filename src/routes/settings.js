@@ -32,6 +32,12 @@ function toBoolean(value) {
   return value === true || value === 'true' || value === 'on' || value === '1' || value === 1;
 }
 
+function parseBotFlowJson(rawValue) {
+  const value = toNullableString(rawValue);
+  if (!value) return {};
+  return JSON.parse(value);
+}
+
 router.get('/settings', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
     const tenantId = res.locals.currentUser.tenant_id;
@@ -54,7 +60,11 @@ router.get('/settings', requireAuth, requireRole('admin'), async (req, res, next
       tenant: tenantRes.rows[0] || null,
       settings: settingsRes.rows[0] || null,
       lgpdRequests: lgpdRes.rows || [],
-      audits: auditRes.rows || []
+      audits: auditRes.rows || [],
+      feedback: {
+        type: req.query.feedback_type || null,
+        message: req.query.feedback || null
+      }
     });
   } catch (error) {
     next(error);
@@ -73,6 +83,7 @@ router.post('/settings', requireAuth, requireRole('admin'), async (req, res, nex
     const retentionDays = toIntOrNull(req.body.retention_days);
     const privacyContactEmail = toNullableString(req.body.privacy_contact_email);
     const lgpdNotice = toNullableString(req.body.lgpd_notice);
+    const botFlowJson = parseBotFlowJson(req.body.bot_flow_json);
 
     const maxOpenConversationsPerAgent = toIntOrDefault(
       req.body.max_open_conversations_per_agent,
@@ -88,14 +99,12 @@ router.post('/settings', requireAuth, requireRole('admin'), async (req, res, nex
       `update tenants
         set welcome_message = $2,
             meta_phone_number_id = $3,
-            meta_access_token = case
-              when $4::text is not null then $4::text
-              else meta_access_token
-            end,
+            meta_access_token = coalesce($4::text, meta_access_token),
             meta_business_account_id = $5,
             meta_verify_token = $6,
             retention_days = $7,
             privacy_contact_email = $8,
+            bot_flow_json = $9::jsonb,
             updated_at = now()
         where id = $1`,
       [
@@ -106,7 +115,8 @@ router.post('/settings', requireAuth, requireRole('admin'), async (req, res, nex
         metaBusinessAccountId,
         metaVerifyToken,
         retentionDays,
-        privacyContactEmail
+        privacyContactEmail,
+        JSON.stringify(botFlowJson || {})
       ]
     );
 
@@ -148,15 +158,19 @@ router.post('/settings', requireAuth, requireRole('admin'), async (req, res, nex
         attachment_enabled: attachmentEnabled,
         meta_phone_number_id: metaPhoneNumberId,
         meta_business_account_id: metaBusinessAccountId,
-        token_updated: !!rawMetaAccessToken
+        token_updated: !!rawMetaAccessToken,
+        bot_flow_updated: true
       },
       ipAddress: req.ip,
       userAgent: req.headers['user-agent']
     });
 
-    res.redirect('/settings');
+    res.redirect('/settings?feedback_type=success&feedback=' + encodeURIComponent('Configurações atualizadas com sucesso.'));
   } catch (error) {
-    next(error);
+    const message = error instanceof SyntaxError
+      ? 'O JSON do fluxo do bot é inválido.'
+      : 'Não foi possível salvar as configurações.';
+    res.redirect('/settings?feedback_type=error&feedback=' + encodeURIComponent(message));
   }
 });
 

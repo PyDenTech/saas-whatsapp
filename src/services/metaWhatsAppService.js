@@ -2,6 +2,10 @@ import { decryptText } from './cryptoService.js';
 import { env } from '../config/env.js';
 import { pool } from '../config/db.js';
 
+function normalizePhoneNumber(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
 export async function sendWhatsAppText({ tenantId, to, body }) {
   const { rows } = await pool.query('select meta_phone_number_id, meta_access_token from tenants where id = $1', [tenantId]);
   const tenant = rows[0];
@@ -17,9 +21,10 @@ export async function sendWhatsAppText({ tenantId, to, body }) {
     },
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to,
+      recipient_type: 'individual',
+      to: normalizePhoneNumber(to),
       type: 'text',
-      text: { body }
+      text: { body, preview_url: false }
     })
   });
 

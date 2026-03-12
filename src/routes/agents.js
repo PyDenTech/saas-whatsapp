@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/agents', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
     `select u.*, (
-      select count(*) from conversations c where c.assigned_agent_id = u.id and c.status in ('assigned','pending')
+      select count(*) from conversations c where c.assigned_agent_id = u.id and c.status in ('assigned','waiting_human','bot_active')
     ) as open_conversations
      from users u where u.tenant_id = $1 order by u.created_at desc`,
     [res.locals.currentUser.tenant_id]
