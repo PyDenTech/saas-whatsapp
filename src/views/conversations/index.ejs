@@ -1,0 +1,74 @@
+<div class="grid xl:grid-cols-[360px,1fr] gap-6">
+  <aside class="bg-white rounded-3xl p-4 shadow-sm">
+    <div class="flex items-center justify-between px-2 py-2">
+      <h1 class="text-xl font-bold">Inbox</h1>
+      <span class="text-sm text-slate-500"><%= conversations.length %> conversas</span>
+    </div>
+    <div class="mt-3 space-y-3 max-h-[78vh] overflow-auto">
+      <% conversations.forEach(item => { %>
+        <a href="/conversations?id=<%= item.id %>" class="block rounded-2xl border p-4 <%= selected?.id === item.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200' %>">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="font-semibold"><%= item.contact_name || item.contact_phone %></div>
+              <div class="text-sm text-slate-500"><%= item.contact_phone %></div>
+            </div>
+            <span class="text-[10px] uppercase rounded-full px-2 py-1 <%= item.priority === 'critical' ? 'bg-rose-100 text-rose-700' : item.priority === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600' %>"><%= item.priority %></span>
+          </div>
+          <div class="text-sm mt-3 text-slate-600"><%= item.last_message || 'Sem mensagens' %></div>
+          <div class="mt-3 text-xs text-slate-400"><%= item.status %> · <%= item.agent_name || 'sem atendente' %></div>
+        </a>
+      <% }) %>
+    </div>
+  </aside>
+  <section class="bg-white rounded-3xl shadow-sm flex flex-col min-h-[78vh]">
+    <% if (!selected) { %>
+      <div class="p-8 text-slate-500">Selecione uma conversa.</div>
+    <% } else { %>
+      <div class="p-5 border-b border-slate-200 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+        <div>
+          <h2 class="text-2xl font-bold"><%= selected.contact_name || selected.contact_phone %></h2>
+          <div class="text-sm text-slate-500">Protocolo <%= selected.protocol_code %> · <%= selected.contact_phone %></div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <form action="/conversations/<%= selected.id %>/queue" method="post" class="flex gap-2">
+            <select name="priority" class="rounded-xl border px-3 py-2 text-sm"><option>normal</option><option>high</option><option>critical</option></select>
+            <button class="rounded-xl bg-amber-500 text-white px-4 py-2 text-sm">Fila</button>
+          </form>
+          <form action="/conversations/<%= selected.id %>/assign" method="post" class="flex gap-2">
+            <select name="user_id" class="rounded-xl border px-3 py-2 text-sm">
+              <% agents.forEach(agent => { %><option value="<%= agent.id %>"><%= agent.full_name %></option><% }) %>
+            </select>
+            <button class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm">Transferir</button>
+          </form>
+          <form action="/conversations/<%= selected.id %>/close" method="post"><button class="rounded-xl bg-rose-600 text-white px-4 py-2 text-sm">Encerrar</button></form>
+        </div>
+      </div>
+      <div id="messages" class="flex-1 p-5 space-y-4 overflow-auto bg-slate-50">
+        <% messages.forEach(message => { %>
+          <div class="<%= message.sender_type === 'agent' ? 'ml-auto bg-slate-900 text-white' : 'mr-auto bg-white text-slate-800' %> max-w-2xl rounded-2xl p-4 shadow-sm">
+            <div class="text-sm leading-relaxed"><%= message.body %></div>
+            <% if (message.attachment_id) { %>
+              <a class="mt-3 inline-block text-xs underline" href="<%= message.storage_path %>" target="_blank"><%= message.original_name %></a>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+      <form action="/conversations/<%= selected.id %>/message" method="post" enctype="multipart/form-data" class="p-5 border-t border-slate-200 space-y-3">
+        <textarea name="body" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Digite a resposta..."></textarea>
+        <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+          <div class="flex gap-3 items-center">
+            <input type="file" name="attachment" class="text-sm" />
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="send_to_whatsapp" value="1" checked /> Enviar também para WhatsApp</label>
+          </div>
+          <button class="rounded-2xl bg-emerald-600 text-white px-6 py-3 font-semibold">Enviar</button>
+        </div>
+      </form>
+      <script>
+        const socket = io({ auth: { tenantId: '<%= currentUser.tenant_id %>' } });
+        socket.on('conversation:message', (payload) => {
+          if (payload.conversationId === '<%= selected.id %>') window.location.reload();
+        });
+      </script>
+    <% } %>
+  </section>
+</div>

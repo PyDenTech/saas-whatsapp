@@ -1,0 +1,47 @@
+<div class="space-y-6">
+  <section class="bg-white rounded-3xl p-6 shadow-sm">
+    <h1 class="text-2xl font-bold">Configurações enterprise</h1>
+    <form action="/settings" method="post" class="mt-6 grid lg:grid-cols-2 gap-4">
+      <input name="welcome_message" value="<%= tenant.welcome_message || '' %>" class="rounded-2xl border px-4 py-3" placeholder="Mensagem de boas-vindas" />
+      <input name="meta_phone_number_id" value="<%= tenant.meta_phone_number_id || '' %>" class="rounded-2xl border px-4 py-3" placeholder="Phone Number ID" />
+      <input name="meta_business_account_id" value="<%= tenant.meta_business_account_id || '' %>" class="rounded-2xl border px-4 py-3" placeholder="Business Account ID" />
+      <input name="meta_verify_token" value="<%= tenant.meta_verify_token || '' %>" class="rounded-2xl border px-4 py-3" placeholder="Verify token do webhook" />
+      <input name="meta_access_token" class="rounded-2xl border px-4 py-3" placeholder="Novo token Meta (opcional)" />
+      <input name="privacy_contact_email" value="<%= tenant.privacy_contact_email || '' %>" class="rounded-2xl border px-4 py-3" placeholder="E-mail do encarregado LGPD" />
+      <input name="retention_days" value="<%= tenant.retention_days || 365 %>" type="number" class="rounded-2xl border px-4 py-3" placeholder="Dias de retenção" />
+      <input name="max_open_conversations_per_agent" value="<%= settings?.max_open_conversations_per_agent || 25 %>" type="number" class="rounded-2xl border px-4 py-3" placeholder="Máximo de conversas por atendente" />
+      <textarea name="lgpd_notice" rows="4" class="rounded-2xl border px-4 py-3 lg:col-span-2" placeholder="Aviso de privacidade"><%= settings?.lgpd_notice || '' %></textarea>
+      <label class="flex items-center gap-2"><input type="checkbox" name="auto_assign_enabled" <%= settings?.auto_assign_enabled ? 'checked' : '' %> /> Autoatribuição</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="attachment_enabled" <%= settings?.attachment_enabled ? 'checked' : '' %> Permitir anexos</label>
+      <button class="lg:col-span-2 rounded-2xl bg-slate-900 text-white py-3 font-semibold">Salvar configurações</button>
+    </form>
+  </section>
+
+  <div class="grid xl:grid-cols-2 gap-6">
+    <section class="bg-white rounded-3xl p-6 shadow-sm">
+      <h2 class="text-xl font-bold">Solicitações LGPD</h2>
+      <form action="/lgpd-requests" method="post" class="mt-4 space-y-3">
+        <input name="requester_phone" class="w-full rounded-2xl border px-4 py-3" placeholder="Telefone do solicitante" />
+        <select name="request_type" class="w-full rounded-2xl border px-4 py-3"><option value="access">Acesso</option><option value="deletion">Exclusão</option><option value="correction">Correção</option></select>
+        <textarea name="notes" rows="3" class="w-full rounded-2xl border px-4 py-3" placeholder="Observações"></textarea>
+        <button class="w-full rounded-2xl bg-emerald-600 text-white py-3 font-semibold">Registrar solicitação</button>
+      </form>
+      <div class="mt-6 space-y-3 text-sm">
+        <% lgpdRequests.forEach(item => { %><div class="rounded-2xl bg-slate-50 p-4"><strong><%= item.request_type %></strong> · <%= item.requester_phone || 'sem telefone' %> · <span class="text-slate-500"><%= item.status %></span></div><% }) %>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-3xl p-6 shadow-sm">
+      <h2 class="text-xl font-bold">Auditoria completa</h2>
+      <div class="mt-4 space-y-3 max-h-[520px] overflow-auto text-sm">
+        <% audits.forEach(item => { %>
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold"><%= item.action %></div>
+            <div class="text-slate-500"><%= item.entity_type %> · <%= item.created_at.toLocaleString('pt-BR') %></div>
+            <div class="text-slate-400 text-xs mt-2">IP: <%= item.ip_address || 'n/d' %></div>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  </div>
+</div>

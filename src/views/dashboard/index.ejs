@@ -1,0 +1,37 @@
+<div class="space-y-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold">Dashboard operacional</h1>
+      <p class="text-slate-500">Monitoramento da fila, auditoria e atendimento em tempo real.</p>
+    </div>
+  </div>
+  <div class="grid md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-3xl p-6 shadow-sm"><div class="text-slate-500 text-sm">Abertas</div><div class="text-3xl font-bold mt-2"><%= stats.open_total %></div></div>
+    <div class="bg-white rounded-3xl p-6 shadow-sm"><div class="text-slate-500 text-sm">Na fila</div><div class="text-3xl font-bold mt-2"><%= stats.waiting_total %></div></div>
+    <div class="bg-white rounded-3xl p-6 shadow-sm"><div class="text-slate-500 text-sm">Em atendimento</div><div class="text-3xl font-bold mt-2"><%= stats.assigned_total %></div></div>
+    <div class="bg-white rounded-3xl p-6 shadow-sm"><div class="text-slate-500 text-sm">Encerradas</div><div class="text-3xl font-bold mt-2"><%= stats.closed_total %></div></div>
+  </div>
+  <div class="grid lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-3xl p-6 shadow-sm">
+      <h2 class="font-semibold text-lg">Fila prioritária</h2>
+      <div class="mt-4 space-y-3">
+        <% queue.forEach(item => { %>
+          <div class="rounded-2xl border border-slate-200 p-4 flex items-center justify-between gap-4">
+            <div>
+              <div class="font-medium"><%= item.contact_name || item.contact_phone %></div>
+              <div class="text-sm text-slate-500"><%= item.contact_phone %></div>
+            </div>
+            <div class="text-xs uppercase px-3 py-2 rounded-full bg-amber-100 text-amber-700"><%= item.priority %></div>
+          </div>
+        <% }) %>
+        <% if (!queue.length) { %><div class="text-slate-500">Nenhuma conversa aguardando.</div><% } %>
+      </div>
+    </div>
+    <div class="bg-white rounded-3xl p-6 shadow-sm">
+      <h2 class="font-semibold text-lg">Auditoria recente</h2>
+      <div class="mt-4 space-y-3 text-sm">
+        <% audits.forEach(item => { %><div class="rounded-2xl bg-slate-50 p-4"><strong><%= item.action %></strong> · <%= item.entity_type %> · <span class="text-slate-500"><%= item.created_at.toLocaleString('pt-BR') %></span></div><% }) %>
+      </div>
+    </div>
+  </div>
+</div>

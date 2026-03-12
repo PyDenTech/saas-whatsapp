@@ -1,0 +1,23 @@
+<section class="min-h-screen flex items-center justify-center px-4 bg-slate-100">
+  <form action="/login" method="post" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 space-y-5">
+    <div>
+      <h1 class="text-3xl font-bold">Entrar</h1>
+      <p class="text-slate-500 mt-2">Acesso multi-tenant da plataforma de atendimento.</p>
+    </div>
+    <% if (error) { %><div class="rounded-2xl bg-rose-50 text-rose-700 px-4 py-3"><%= error %></div><% } %>
+    <div>
+      <label class="text-sm font-medium">Tenant</label>
+      <input name="slug" required class="mt-1 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="demo" />
+    </div>
+    <div>
+      <label class="text-sm font-medium">E-mail</label>
+      <input name="email" type="email" required class="mt-1 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="admin@demo.local" />
+    </div>
+    <div>
+      <label class="text-sm font-medium">Senha</label>
+      <input name="password" type="password" required class="mt-1 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="******" />
+    </div>
+    <button class="w-full rounded-2xl bg-slate-900 text-white py-3 font-semibold">Entrar</button>
+    <div class="text-sm text-slate-500">Demo: tenant <strong>demo</strong> · usuário <strong>admin@demo.local</strong> · senha <strong>123456</strong></div>
+  </form>
+</section>
